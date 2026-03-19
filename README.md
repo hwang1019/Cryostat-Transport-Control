@@ -33,3 +33,6 @@ This repo contains Python code for controlling and automating transport measurem
 ## Usage
 python template_main.py
 
+## Notes
+This project requires a VISA backend (e.g. NI-MAX) installed on the system.
+
