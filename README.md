@@ -17,9 +17,9 @@ This repo contains Python code for controlling and automating transport measurem
 - Live data visualisation
 
 ## Requirements
-- Python 3.x
+- Python 3 and above
 - pyvisa
-- socket
+- matplotlib
 - nidaqmx
 
 ## Setup
