@@ -5,3 +5,10 @@ This repo contains Python code for controlling and automating transport measurem
 
 ## Features
 - Instrument communication
+- Voltage/current measurement
+- Temperature measurement/control
+- Magnetic field measurement/control with quench prevention
+- DAQ control
+- Live data visualisation
+
+
