@@ -52,7 +52,11 @@ def _read_float(inst, cmd, unit='T'):
 def IPS_meas_B(inst, disp = True):
 
     '''
-    Measure current B
+    Measure current magnetic field and return it.
+
+    Args:
+        inst: object corresponds to the magnet
+        disp: print the magnetic field or not (print by default)
     '''
 
     try:
@@ -73,9 +77,12 @@ def IPS_to_zero(inst, rate):
 
     '''
     Zero the field (equivalent to pressing 'To zero' on the psu panel). Avoid using this function if possible.
+    Args:
+        inst: object cprresponds to the magnet
+        rate: sweep rate of the magnetic field (unit: T/h)
     '''
 
-    inst.write(f'SET:DEV:GRPZ:PSU:SIG:RFST:{rate/60}')
+    inst.write(f'SET:DEV:GRPZ:PSU:SIG:RFST:{rate/60}') # divide by 60 is very important since IPS accepts sweep rate in T/min
     inst.write('SET:DEV:GRPZ:PSU:ACTN:RTOZ')
     print("Magnet is set to go zero.")
     

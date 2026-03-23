@@ -1,5 +1,5 @@
 # Class for communicating with LakeShore 370 AC Resistance Bridge
-#Last update on 19Feb26
+# Many thanks to Dr Johnathan Gough for his contributions.
 
 import socket 
     
@@ -70,7 +70,7 @@ class LakeShore:
     def read_heater_setpoint(self, BUFF = 50000):
         
         """
-        Read temperature set point on channel in Kelvin 
+        Read temperature setpoint on channel in Kelvin 
 
         """     
         c = self.control
@@ -104,7 +104,7 @@ class LakeShore:
     def set_heater_range(self,I, BUFF = 50000):
         
         """
-        Set heater range
+        Set heater range (current supplied to the heater)
         Args:
             I: Heater current (unit: mA)  
 
