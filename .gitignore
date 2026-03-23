@@ -28,7 +28,7 @@ data/
 
 # Environment variables / configs
 .env
-config_local.py
+config.py
 
 # Keep important text files
 !requirements.txt
