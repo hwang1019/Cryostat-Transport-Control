@@ -1,5 +1,6 @@
 # Code for MercuryIPS
-# Last update on 17Feb26
+# Leave sufficient time with e.g. time.sleep(1) between successive queries, especially when the magnet psu is connected to the pc via serial (e.g. RS-232) communication 
+# and over long cables
 
 import pyvisa
 import time
@@ -58,7 +59,7 @@ def IPS_meas_B(inst, disp = True):
         inst: object corresponds to the magnet
         disp: print the magnetic field or not (print by default)
     '''
-
+    # Make sure the computer always 'reads' something in the IPS buffer
     try:
         while inst.bytes_in_buffer > 0:
             inst.read()
@@ -90,19 +91,35 @@ def IPS_to_zero(inst, rate):
 
 def IPS_hold(inst):
 
+    '''
+    Put the magnet on hold. This is equivalent to pressing the 'hold' button on the psu panel.
+    '''
+
     inst.write('SET:DEV:GRPZ:PSU:ACTN:HOLD')
-    time.sleep(1)
+    time.sleep(1) # Essential if doing multiple queries and especially if the magnet is connected over long cable via serial communication.
     #print('Magnetic field is now {} T.'.format(str(IPS_meas_B(inst))))
 
     return
 
 def IPS_to_set(inst):
 
+    '''
+    Ask the magnet to go to the setpoint. This is equivalent to pressing the 'to set' button on the psu panel.
+    '''
+
     inst.write('SET:DEV:GRPZ:PSU:ACTN:RTOS')
 
     return
 
 def IPS_set_rate(inst, target_rate):
+
+    '''
+    Set the sweep rate for magnetic field.
+
+    Args:
+        inst: object corresponding to the magnet
+        target_rate: field sweep rate in T/hr
+    '''
 
     inst.write('SET:DEV:GRPZ:PSU:SIG:RFST:{}'.format(str(target_rate/60)))  
 
@@ -112,10 +129,13 @@ def IPS_set_B(inst,target_rate,target_B,target_rate_slow = 0.2,B_crit = 10):
 
     '''
     Set magnet to a field. Useful for field initialisation.
+    Note this function does not come with quench-prevention mechanism.
 
     inst: instrument
     target_rate: sweep rate in T/hr
     target_B: field to sweep to in T
+    target_rate_slow: the slower sweep rate when field goes beyond a critical value
+    B_crit: Critical field value beyond which the sweep rate slows down to provent magnet quench
     '''
 
     time.sleep(0.5)
@@ -134,6 +154,7 @@ def IPS_set_B(inst,target_rate,target_B,target_rate_slow = 0.2,B_crit = 10):
         B = IPS_meas_B(inst, disp = False)
         print(f'B = {B:.5f} T')
 
+        # Slow down sweep rate when field goes beyond the critical field value
         if abs(B) > B_crit and slow_rate == False:
             IPS_hold(inst)
             IPS_set_rate(inst, target_rate = target_rate_slow)
@@ -146,8 +167,6 @@ def IPS_set_B(inst,target_rate,target_B,target_rate_slow = 0.2,B_crit = 10):
             IPS_to_set(inst)
             slow_rate = False
             print(f'Rate has increased to {target_rate}.')
-
-
 
         if abs(B - target_B) <= 0.01:
             break
@@ -183,6 +202,8 @@ def IPS_sweep_B(inst,target_rate,target_B):
 
     time.sleep(1)
 
+    # Following code is for making sure the field setpoint and sweep rate are set correctly. 
+    # They are commented out because successive queries via RS-232 can cause reading errors.
     '''
     while not set_B == target_B:
         inst.query('SET:DEV:GRPZ:PSU:SIG:FSET:{}'.format(str(target_B)))
@@ -205,16 +226,27 @@ def IPS_sweep_B(inst,target_rate,target_B):
 
 def IPS_heater_ON(inst):
 
+    '''
+    Turn on the switch heater remotely. It is recommended to do it locally.
+    '''
+
     response = (inst.query('SET:DEV:GRPZ:PSU:SIG:SWHT:ON'))
+    print('Switch heater is turned ON. Stabilising ...')
+
+    time.sleep(5 * 60) # wait 5 minutes for heater to stabilise
+    print('Switch heater is turned on and stabilised.')
 
     return response
 
 def IPS_heater_OFF(inst):
 
     response = inst.query('SET:DEV:GRPZ:PSU:SIG:SWHT:OFF')
+    print('Switch heater is turned OFF.')
 
     return response
 
+
+# The following code is for quick testing. Remember to comment them out before running the main.py
 '''
 # Code for testing
 
