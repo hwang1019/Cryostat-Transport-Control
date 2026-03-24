@@ -1,10 +1,11 @@
 # Code for SR7265 Signal Recovery Lock-in Amplifier.
-# Last update on 20Feb2026
+
 
 import pyvisa
 import time
 import numpy as np
 
+# list of available lockin sensitivity
 SENS = [
     2e-9, 5e-9, 1e-8, 2e-8, 5e-8,
     1e-7, 2e-7, 5e-7,
@@ -19,6 +20,16 @@ SENS = [
 
 def SR7265_config(address):
 
+    '''
+    Initialise communication to SR7265.
+
+    Args:
+        address: address of the SR7265
+
+    Return:
+        The SR7265 object for future communication. 
+    '''
+
     rm = pyvisa.ResourceManager()
     SR7265 = rm.open_resource(address)
     SR7265.read_termination = '\r\n'
@@ -29,6 +40,11 @@ def SR7265_config(address):
 
 def SR7265_manualrange(inst):
 
+    '''
+    Built-in autorange function of the SR7265 lockin is pretty bad. 
+    Manually set the range wherever possible.
+    '''
+    # defining range
     low = 0.3
     high = 0.8
 
@@ -41,16 +57,16 @@ def SR7265_manualrange(inst):
     if low <= ratio <= high:
         return curr_sens, curr_sens, False 
 
-    # choose best range (target ~0.6 full scale)
+    # choose best range (target ~ 0.6 full scale)
     target = abs(mag) / 0.6
     
     tc = float(inst.query('TC.'))
 
     for i, s in enumerate(SENS):
         if s >= target:
-            if s != curr_sens:
+            if s != curr_sens: # only change sensitivity when necessary
                 inst.write(f"SEN {i+1}")   # instrument is 1-based
-                time.sleep(10 * tc)
+                time.sleep(10 * tc) # for stabilisation
                 return curr_sens, SENS[i], True
             else:
                 return curr_sens, curr_sens, False
@@ -84,16 +100,22 @@ def SR7265_meas_sens(inst):
 
 def SR7265_autorange(inst):
 
+    '''
+    Built-in autorange function of the SR7265. Not recommended.
+    '''
     curr_sens = SR7265_meas_sens(inst)
     curr_mag = SR7265_meas_Mag(inst)
     if curr_mag < 0.3 * curr_sens or curr_mag > 0.9 * 3 * curr_sens:
         inst.write('AS')
-    #time.sleep(10 * float(inst.query('TC.')))  This line leads to timeout err for unknown reason.
     time.sleep(10)
 
     return 
 
 def SR7265_set_osc(inst,v_target):
+
+    '''
+    Setting the oscillation amplitude of the output signal. Signal amplitude is ramped to setpoint at 0.1V/s. 
+    '''
 
     curr_osc = float(inst.query('OA.'))
     step = 0.1 # volt
