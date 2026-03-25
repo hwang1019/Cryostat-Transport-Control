@@ -66,7 +66,6 @@ def SR7265_manualrange(inst):
         if s >= target:
             if s != curr_sens: # only change sensitivity when necessary
                 inst.write(f"SEN {i+1}")   # instrument is 1-based
-                time.sleep(10 * tc) # for stabilisation
                 return curr_sens, SENS[i], True
             else:
                 return curr_sens, curr_sens, False
@@ -126,6 +125,17 @@ def SR7265_set_osc(inst,v_target):
         time.sleep(1)
 
     return 
+
+def SR7265_meas_TC(inst):
+
+    '''
+    Return the time constant of the lockin. 
+    Useful for waiting time after adjusting sensitivity.
+    '''
+
+    tc = float(inst.query('TC.'))
+
+    return tc
 
 
 # Code for testing
