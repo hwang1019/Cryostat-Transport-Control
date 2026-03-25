@@ -1,5 +1,4 @@
 # B sweep example program
-# Last update on 19Feb26
 
 #import pyvisa
 #import numpy as np
