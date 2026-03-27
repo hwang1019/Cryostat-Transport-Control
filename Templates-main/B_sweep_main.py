@@ -157,16 +157,18 @@ while counter <=1:
             else:
                 overheat = False
 
-
+        # manual-range lockins
         if len(B_data) % 3 == 0:
             curr_sens_1, target_sens_1, mr1 = SR7265_manualrange(lockin1)
             if mr1 == True:
                 IPS_hold(IPS)
+                time.sleep(10 * SR7265_meas_TC(lockin1))
                 print(f'Current lockin_1 sensitivity was {curr_sens_1} and is now set to {target_sens_1}.')
 
             curr_sens_2, target_sens_2, mr2 = SR7265_manualrange(lockin2)
             if mr2 == True:
                 IPS_hold(IPS)
+                time.sleep(10 * SR7265_meas_TC(lockin2))
                 print(f'Current lockin_2 sensitivity was {curr_sens_2} and is now set to {target_sens_2}.')
 
         Vxx_meas = SR7265_meas_X(lockin1)/Gain1
@@ -319,12 +321,14 @@ while counter <=1:
             curr_sens_1, target_sens_1, mr1 = SR7265_manualrange(lockin1)
             if mr1 == True:
                 IPS_hold(IPS)
+                time.sleep(10 * SR7265_meas_TC(lockin1))
                 print(f'Current lockin_1 sensitivity is {curr_sens_1} and will be set to {target_sens_1}.')
                 time.sleep(10)
 
             curr_sens_2, target_sens_2, mr2 = SR7265_manualrange(lockin2)
             if mr2 == True:
                 IPS_hold(IPS)
+                time.sleep(10 * SR7265_meas_TC(lockin2))
                 print(f'Current lockin_2 sensitivity is {curr_sens_2} and will be set to {target_sens_2}.')
                 time.sleep(10)
 
