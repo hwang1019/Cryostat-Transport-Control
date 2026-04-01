@@ -12,11 +12,11 @@ from MercuryIPS import *
 from LakeShore import LakeShore
 
 # Replace placeholders with actual instrument address
-lockin1_address = 'GPIB0::XX::INSTR'
-IPS_address = 'ASRLXX::INSTR'
-Host = 'place holder'
-Port = 'place holder'
-Channel = 'place holder' 
+lockin1_address = 'ph'
+IPS_address = 'ph'
+Host = 'ph'
+Port = 'ph'
+Channel = 'ph'
 
 # Initialise communication with the instruments
 lockin1 = SR7265_config(lockin1_address) # Measure Vxx
@@ -74,28 +74,27 @@ answer = input("Continue? [Y/N]: ")
 
 if answer.strip().upper() != "Y":
     print("Stopping script.")
+    IPS.close()
+    lockin1.close()
     raise SystemExit
 
 print("Continuing...")
 
 counter = 1
 while counter <=1:
-    # 1st sweep
-    sweep = 'down'
     
     for b in B:
 
-        png_filename_1 = f"B_sweep_Vxx_{date_str}_{time_str}_{sweep}_{b}T_{counter}.png"
-        save_path_1 = os.path.join(data_folder, png_filename_1)
-
         IPS_set_B(IPS,target_rate = B_rate, target_B = b) # ramp to starting field
         time.sleep(10)
+
+        png_filename_1 = f"Vg_sweep_Vxx_{date_str}_{time_str}_{b}T_{counter}.png"
+        save_path_1 = os.path.join(data_folder, png_filename_1)
 
         plt.ion()  # turn on interactive mode
 
         # Plot 1 : Ixx over Vsg
         fig1, ax1 = plt.subplots()
-        line1, = ax1.plot([], [], 'ro',label = 'Ixx')   
         ax1.set_xlabel("Vsg (V)")
         ax1.set_ylabel("Ixx (A)")
         ax1.set_title('Ixx vs Vsg')
@@ -103,10 +102,78 @@ while counter <=1:
         # Measurements
         for vtg in Vtg:
 
+            # 1st sweep
+            sweep = 'down'
+
             DAQset(channel = Vtg_chan, voltage = vtg) 
 
             txt_filename = f"Vsg_sweep_{date_str}_{time_str}_{sweep}_{vtg}V_{b}T_{counter}.txt"
             txt_path = os.path.join(data_folder, txt_filename)
+
+            # New line per vtg 
+            line1, = ax1.plot([], [], 'ro')
+
+            # Initialise data to be recorded
+            Vsg_data = []
+            Ixx_data = [] 
+            Temp_data = []  
+            Phase1_data = []
+
+            for vsg in Vsg_map[sweep]:
+
+                DAQset(channel = Vsg_chan, voltage = vsg)
+
+                if len(Vsg_data) % 20 == 0:
+                    curr_sens_1, target_sens_1, mr1 = SR7265_manualrange(lockin1)
+                    if mr1 == True:
+                        time.sleep(10 * SR7265_meas_TC(lockin1))
+                        print(f'Current lockin_1 sensitivity was {curr_sens_1} and is now set to {target_sens_1}.')
+
+                Ixx_meas = SR7265_meas_X(lockin1) * Sens1
+                Phase1_meas = SR7265_meas_Phase(lockin1)
+                Vsg_meas = vsg
+
+                lakeshore = LakeShore(Host, Port, Channel)
+                T_samp_meas = lakeshore.read_thermometer()
+                lakeshore.close()
+
+                Ixx_data.append(Ixx_meas)
+                Phase1_data.append(Phase1_meas)
+                Temp_data.append(T_samp_meas)
+                Vsg_data.append(Vsg_meas)
+
+                line1.set_data(Vsg_data,Ixx_data)
+                ax1.relim()
+                ax1.autoscale_view()  # auto-adjust axes  
+                fig1.canvas.draw()
+                fig1.canvas.flush_events()       
+
+                plt.pause(0.1)  # short pause to allow GUI event loop to run
+                time.sleep(1)
+                plt.show(block=False)
+
+                with open(txt_path, mode='w') as file:
+
+                    file.write(f"# Measurement taken on {date_str} at {time_str}\n")
+                    file.write(f"# Columns: Vsg (V), Ixx (A), Phase1 (degree), Temperature (K) \n")
+                    file.write(f"{'Vsg (V)':>15} {'Ixx (A)':>15} {'Phase1 (degree)':>15} {'Temperature (K)':>15}\n")
+
+                    # Data rows
+                    for i in range(len(Vsg_data)):
+                        file.write(f"{Vsg_data[i]:15.6f} {Ixx_data[i]:15.6f} {Phase1_data[i]:15.6f} {Temp_data[i]:15.6f}\n")
+
+            # Save the figure
+            fig1.savefig(save_path_1, dpi=300)
+
+
+            # 2nd sweep
+            sweep = 'up'
+
+            txt_filename = f"Vsg_sweep_{date_str}_{time_str}_{sweep}_{vtg}V_{b}T_{counter}.txt"
+            txt_path = os.path.join(data_folder, txt_filename)
+
+            # New line per vtg (label lets you add a legend)
+            line1, = ax1.plot([], [], 'bo')
 
             # Initialise data to be recorded
             Vsg_data = []
@@ -145,10 +212,6 @@ while counter <=1:
 
                 plt.pause(0.1)  # short pause to allow GUI event loop to run
                 time.sleep(1) 
-
-                # Save the figure
-                fig1.savefig(save_path_1, dpi=300)
-
                 plt.show(block=False)
 
                 with open(txt_path, mode='w') as file:
@@ -161,91 +224,8 @@ while counter <=1:
                     for i in range(len(Vsg_data)):
                         file.write(f"{Vsg_data[i]:15.6f} {Ixx_data[i]:15.6f} {Phase1_data[i]:15.6f} {Temp_data[i]:15.6f}\n")
 
-        plt.ioff()
-        IPS_hold(IPS)
-        DAQsweep(Vsg_chan, start = np.max(Vsg_map[sweep]), end = 0, rate = 100)
-        DAQsweep(Vtg_chan, start = np.max(Vtg), end = 0, rate = 100)
-
-    # 2nd sweep
-    sweep = 'up'
-
-    for b in B:
-
-        png_filename_1 = f"B_sweep_Vxx_{date_str}_{time_str}_{sweep}_{b}T_{counter}.png"
-        save_path_1 = os.path.join(data_folder, png_filename_1)
-
-        IPS_set_B(IPS,target_rate = B_rate, target_B = b) # ramp to starting field
-        time.sleep(10)
-
-        plt.ion()  # turn on interactive mode
-
-        # Plot 1 : Ixx over Vsg
-        fig1, ax1 = plt.subplots()
-        line1, = ax1.plot([], [], 'ro',label = 'Ixx')   
-        ax1.set_xlabel("Vsg (V)")
-        ax1.set_ylabel("Ixx (A)")
-        ax1.set_title('Ixx vs Vsg')
-        
-        # Measurements
-        for vtg in Vtg:
-
-            DAQset(channel = Vtg_chan, voltage = vtg) 
-
-            txt_filename = f"Vsg_sweep_{date_str}_{time_str}_{sweep}_{vtg}V_{b}T_{counter}.txt"
-            txt_path = os.path.join(data_folder, txt_filename)
-
-            # Initialise data to be recorded
-            Vsg_data = []
-            Ixx_data = [] 
-            Temp_data = []  
-            Phase1_data = []
-
-            for vsg in Vsg_map[sweep]:
-
-                DAQset(channel = Vsg_chan, voltage = vsg)
-
-                if len(Vsg_data) % 20 == 0:
-                    curr_sens_1, target_sens_1, mr1 = SR7265_manualrange(lockin1)
-                    if mr1 == True:
-                        time.sleep(10 * SR7265_meas_TC(lockin1))
-                        print(f'Current lockin_1 sensitivity was {curr_sens_1} and is now set to {target_sens_1}.')
-
-                Ixx_meas = SR7265_meas_X(lockin1) * Sens1
-                Phase1_meas = SR7265_meas_Phase(lockin1)
-                Vsg_meas = vsg
-
-                lakeshore = LakeShore(Host, Port, Channel)
-                T_samp_meas = lakeshore.read_thermometer()
-                lakeshore.close()
-
-                Ixx_data.append(Ixx_meas)
-                Phase1_data.append(Phase1_meas)
-                Temp_data.append(T_samp_meas)
-                Vsg_data.append(Vsg_meas)
-
-                line1.set_data(Vsg_data,Ixx_data)
-                ax1.relim()
-                ax1.autoscale_view()  # auto-adjust axes  
-                fig1.canvas.draw()
-                fig1.canvas.flush_events()       
-
-                plt.pause(0.1)  # short pause to allow GUI event loop to run
-                time.sleep(1) 
-
-                # Save the figure
-                fig1.savefig(save_path_1, dpi=300)
-
-                plt.show(block=False)
-
-                with open(txt_path, mode='w') as file:
-
-                    file.write(f"# Measurement taken on {date_str} at {time_str}\n")
-                    file.write(f"# Columns: Vsg (V), Ixx (A), Phase1 (degree), Temperature (K) \n")
-                    file.write(f"{'Vsg (V)':>15} {'Ixx (A)':>15} {'Phase1 (degree)':>15} {'Temperature (K)':>15}\n")
-
-                    # Data rows
-                    for i in range(len(Vsg_data)):
-                        file.write(f"{Vsg_data[i]:15.6f} {Ixx_data[i]:15.6f} {Phase1_data[i]:15.6f} {Temp_data[i]:15.6f}\n")
+            # Save the figure
+            fig1.savefig(save_path_1, dpi=300)
 
         plt.ioff()
         IPS_hold(IPS)
