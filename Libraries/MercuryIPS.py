@@ -168,7 +168,7 @@ def IPS_set_B(inst,target_rate,target_B,target_rate_slow = 0.2,B_crit = 10):
             slow_rate = False
             print(f'Rate has increased to {target_rate}.')
 
-        if abs(B - target_B) <= 0.01:
+        if abs(B - target_B) <= 0.001:
             break
 
     inst.write('SET:DEV:GRPZ:PSU:ACTN:HOLD')
