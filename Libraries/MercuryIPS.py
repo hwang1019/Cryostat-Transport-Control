@@ -141,7 +141,7 @@ def IPS_set_B(inst,target_rate,target_B,target_rate_slow = 0.2,B_crit = 10):
     time.sleep(0.5)
     slow_rate = False
 
-    curr_B = IPS_meas_B(inst)
+    curr_B = IPS_meas_B(inst, disp = False)
     t = abs(target_B - curr_B)/(target_rate)
     print(f'It takes about {t} hours to reach {target_B} T.')
 
